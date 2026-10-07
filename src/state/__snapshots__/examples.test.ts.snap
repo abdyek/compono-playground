@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`examples > built-ins 1`] = `"<h1>Built-in components</h1><p>Built-ins produce the semantic HTML that Markdown can&#39;t, like a link<br>that opens in a new tab: <a href="https://github.com/umono-cms/compono" target="_blank" rel="noopener noreferrer">Compono on GitHub</a></p><picture><source type="image/webp" srcset="https://picsum.photos/id/1015/640/360.webp 640w, https://picsum.photos/id/1015/1280/720.webp 1280w"><img src="https://picsum.photos/id/1015/1600/900" alt="A river between mountains" width="1600" height="900"></picture><p>Images can be inline too: <img src="https://picsum.photos/id/64/48/48" alt="Avatar" width="48" height="48"> is ready.</p>"`;
+
+exports[`examples > components 1`] = `"<h1>Hello, Compono!</h1><p>Compono is <strong>Markdown</strong> with <em>components</em>. Define them at the bottom,<br>call them anywhere: <strong>reusable</strong>.</p><h2>Jane</h2><p>Age: 31, first tag: <em>writer</em></p>"`;
+
+exports[`examples > diagnostics 1`] = `"<h1>Hello, !</h1><p>Version: </p><h2>Links</h2>"`;
+
+exports[`examples > globals-context 1`] = `"<h1>Hello, Compono</h1><p>Written by <strong>Jane Doe</strong> with Compono 0.7.0.<br>Global components are given to the conversion and context injects data at convert time.</p>"`;
