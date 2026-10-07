@@ -49,3 +49,13 @@ test/
 
 # End of https://www.toptal.com/developers/gitignore/api/vim,linux,vue
 .claude
+
+### Node / Vite ###
+node_modules/
+dist/
+*.local
+*.tsbuildinfo
+
+### WASM bridge ###
+# go.sum depends on the Compono ref; scripts/build-wasm.sh creates it.
+wasm/go.sum
