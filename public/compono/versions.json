@@ -1,0 +1,13 @@
+{
+  "default": "main",
+  "versions": [
+    {
+      "id": "main",
+      "label": "main (5e0657f)",
+      "ref": "main",
+      "commit": "5e0657ff3f76ee75773601cd4df2a3f371205c05",
+      "go": "go1.26.0",
+      "builtAt": "2026-10-07T21:50:58.775Z"
+    }
+  ]
+}
