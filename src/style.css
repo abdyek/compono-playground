@@ -1,0 +1,156 @@
+:root {
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --editor-bg: #ffffff;
+  --border: #dfe2e7;
+  --text: #1d2129;
+  --text-muted: #5b6270;
+  --text-faint: #9aa1ad;
+  --accent: #4b5bdc;
+  --accent-soft: #eceefd;
+  --on-accent: #ffffff;
+  --error: #c62f3c;
+  --error-soft: #fdecee;
+  --warning: #a35f00;
+  --selection: #d7dcfa;
+  --selection-match: #e6e9fb;
+  --active-line: #f3f4f8;
+
+  --tok-comment: #8a919c;
+  --tok-keyword: #a626a4;
+  --tok-component: #4b5bdc;
+  --tok-definition: #b0361c;
+  --tok-property: #0f7b6c;
+  --tok-string: #2f7d32;
+  --tok-number: #b35c00;
+  --tok-meta: #8a919c;
+  --tok-heading: #1d2129;
+  --tok-tag: #b0361c;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161b;
+    --surface: #1b1e24;
+    --editor-bg: #1b1e24;
+    --border: #2d313a;
+    --text: #e3e6eb;
+    --text-muted: #a2a9b5;
+    --text-faint: #646b78;
+    --accent: #8d99ff;
+    --accent-soft: #262b45;
+    --on-accent: #14161b;
+    --error: #ff7b86;
+    --error-soft: #3a2025;
+    --warning: #f0b45a;
+    --selection: #34406e;
+    --selection-match: #2a3150;
+    --active-line: #20242b;
+
+    --tok-comment: #6f7785;
+    --tok-keyword: #d68ee0;
+    --tok-component: #8d99ff;
+    --tok-definition: #ff9b7a;
+    --tok-property: #5ccfbb;
+    --tok-string: #8fd28f;
+    --tok-number: #f0b45a;
+    --tok-meta: #6f7785;
+    --tok-heading: #ffffff;
+    --tok-tag: #ff9b7a;
+
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--sans);
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Syntax highlighting (classHighlighter tokens). */
+.tok-comment {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.tok-keyword {
+  color: var(--tok-keyword);
+}
+.tok-typeName {
+  color: var(--tok-component);
+  font-weight: 600;
+}
+.tok-className {
+  color: var(--tok-definition);
+  font-weight: 600;
+}
+.tok-propertyName,
+.tok-attributeName {
+  color: var(--tok-property);
+}
+.tok-variableName {
+  color: var(--tok-property);
+}
+.tok-string,
+.tok-literal,
+.tok-attributeValue {
+  color: var(--tok-string);
+}
+.tok-number,
+.tok-bool,
+.tok-atom {
+  color: var(--tok-number);
+}
+.tok-meta,
+.tok-punctuation,
+.tok-operator {
+  color: var(--tok-meta);
+}
+.tok-heading {
+  color: var(--tok-heading);
+  font-weight: 700;
+}
+.tok-strong {
+  font-weight: 700;
+}
+.tok-emphasis {
+  font-style: italic;
+}
+.tok-link,
+.tok-url {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.tok-tagName {
+  color: var(--tok-tag);
+}
+.tok-invalid {
+  color: var(--error);
+}
