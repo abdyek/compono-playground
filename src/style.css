@@ -15,9 +15,10 @@
   --error: #c62f3c;
   --error-soft: #fdecee;
   --warning: #a35f00;
-  --selection: #d7dcfa;
-  --selection-match: #e6e9fb;
-  --active-line: #f3f4f8;
+  /* Translucent, so that the selection shows through the active line. */
+  --selection: rgba(75, 91, 220, 0.3);
+  --selection-match: rgba(75, 91, 220, 0.14);
+  --active-line: rgba(29, 33, 41, 0.035);
 
   --tok-comment: #8a919c;
   --tok-keyword: #a626a4;
@@ -48,9 +49,9 @@
     --error: #ff7b86;
     --error-soft: #3a2025;
     --warning: #f0b45a;
-    --selection: #34406e;
-    --selection-match: #2a3150;
-    --active-line: #20242b;
+    --selection: rgba(141, 153, 255, 0.4);
+    --selection-match: rgba(141, 153, 255, 0.16);
+    --active-line: rgba(255, 255, 255, 0.035);
 
     --tok-comment: #6f7785;
     --tok-keyword: #d68ee0;
@@ -93,6 +94,16 @@ input {
 
 a {
   color: var(--accent);
+}
+
+::selection {
+  background: var(--selection);
+}
+
+/* CodeMirror draws the selection itself. Its base theme colors it with
+   selectors more specific than an editor theme's, hence !important. */
+.cm-editor .cm-selectionLayer .cm-selectionBackground {
+  background: var(--selection) !important;
 }
 
 /* Syntax highlighting (classHighlighter tokens). */
