@@ -209,6 +209,11 @@ class Sync {
   /** Builds a playground release with its Compono builds and switches to it. */
   deploy(release, previous) {
     const site = path.join(this.data, 'releases', release)
+    if (previous) {
+      this.lastMain = readManifest(path.join(this.data, 'releases', previous, 'compono')).versions.find(
+        (v) => v.id === 'main',
+      )
+    }
     if (!fs.existsSync(path.join(site, 'index.html'))) {
       log(`Building playground ${release}`)
       const src = path.join(this.data, 'sources', release)
@@ -317,7 +322,31 @@ class Sync {
       // Publish each build as soon as it is ready.
       writeManifest(dir, manifest)
     }
+    this.keepMainListed(release, manifest, dir, bridge)
     if (JSON.stringify(sortVersions(manifest.versions)) !== before || !fs.existsSync(path.join(dir, MANIFEST))) {
+      writeManifest(dir, manifest)
+    }
+  }
+
+  /**
+   * A new release can't reuse builds of another bridge. If main's newest
+   * commit doesn't build either, main's commit of the previous release is
+   * built, so that main stays listed.
+   */
+  keepMainListed(release, manifest, dir, bridge) {
+    const last = this.lastMain
+    if (!last || manifest.versions.some((v) => v.id === 'main')) {
+      return
+    }
+    const b = { id: 'main', ref: 'main', commit: last.commit, path: buildPath(last.commit, bridge) }
+    if (b.path in this.state.failed) {
+      return
+    }
+    log(`Main is not built for playground ${release}; building the previous release's main (${last.commit.slice(0, 7)})`)
+    const same = manifest.versions.find((v) => v.path === b.path)
+    const built = same ? { ...same, id: b.id, ref: b.ref, label: versionLabel(b.id, b.commit) } : this.build(release, b, dir, bridge)
+    if (built) {
+      manifest.versions.push(built)
       writeManifest(dir, manifest)
     }
   }
