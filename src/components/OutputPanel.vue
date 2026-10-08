@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import type { FatalKind } from '../compono/types'
 import { result, status } from '../state/playground'
+import { previewDark } from '../state/preferences'
 import CodeEditor from './CodeEditor.vue'
 
 const tab = ref<'preview' | 'html'>('preview')
@@ -19,12 +20,18 @@ const fatalTitles: Record<FatalKind, string> = {
 }
 
 // The output is shown unstyled: Compono is semantic and theme independent.
+// The dark preview is the browser's own dark defaults, not a theme.
 // The iframe runs no scripts; links open in a new tab.
 const srcdoc = computed(
   () =>
     `<!doctype html><html><head><meta charset="utf-8"><base target="_blank">` +
-    `<meta name="color-scheme" content="light"></head><body>${html.value}</body></html>`,
+    `<meta name="color-scheme" content="${previewDark.value ? 'dark' : 'light'}">` +
+    `</head><body>${html.value}</body></html>`,
 )
+
+function togglePreviewDark() {
+  previewDark.value = !previewDark.value
+}
 
 async function copy() {
   try {
@@ -59,6 +66,17 @@ async function copy() {
         HTML
       </button>
       <span class="spacer" />
+      <button
+        v-if="tab === 'preview'"
+        type="button"
+        role="switch"
+        class="switch"
+        :aria-checked="previewDark"
+        @click="togglePreviewDark"
+      >
+        <span class="track" aria-hidden="true"><span class="knob" /></span>
+        Dark preview
+      </button>
       <button v-if="html" type="button" class="copy" @click="copy">{{ copied ? 'Copied' : 'Copy HTML' }}</button>
     </div>
 
@@ -87,6 +105,7 @@ async function copy() {
       <iframe
         v-else-if="tab === 'preview'"
         class="preview"
+        :class="{ dark: previewDark }"
         title="Output preview"
         sandbox="allow-popups allow-popups-to-escape-sandbox"
         :srcdoc="srcdoc"
@@ -153,7 +172,55 @@ async function copy() {
   width: 100%;
   height: 100%;
   border: none;
-  background: #fff;
+  /* Same scheme as the document inside, so its canvas color shows. */
+  color-scheme: light;
+  background: Canvas;
+}
+
+.preview.dark {
+  color-scheme: dark;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  margin-right: 12px;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.track {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--surface);
+  transition: transform 0.15s;
+}
+
+.switch[aria-checked='true'] .track {
+  background: var(--accent);
+}
+
+.switch[aria-checked='true'] .knob {
+  transform: translateX(12px);
 }
 
 .empty {

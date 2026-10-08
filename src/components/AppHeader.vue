@@ -51,7 +51,6 @@ const currentVersion = computed(() => versions.value.find((v) => v.id === input.
 <template>
   <header class="header">
     <h1 class="brand">
-      <span class="mark" aria-hidden="true" v-text="'{{ }}'" />
       Compono <span class="muted">Playground</span>
     </h1>
 
@@ -105,12 +104,6 @@ const currentVersion = computed(() => versions.value.find((v) => v.id === input.
   font-size: 16px;
   font-weight: 700;
   white-space: nowrap;
-}
-
-.mark {
-  font-family: var(--mono);
-  color: var(--accent);
-  margin-right: 4px;
 }
 
 .muted {

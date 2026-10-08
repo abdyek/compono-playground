@@ -35,8 +35,6 @@ const theme = EditorView.theme({
   '.cm-content': { caretColor: 'var(--text)' },
   '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--text)' },
   '&.cm-focused': { outline: 'none' },
-  '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground':
-    { backgroundColor: 'var(--selection)' },
   '.cm-gutters': {
     backgroundColor: 'var(--editor-bg)',
     color: 'var(--text-faint)',
