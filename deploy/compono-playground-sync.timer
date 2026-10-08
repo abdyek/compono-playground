@@ -1,0 +1,10 @@
+# Runs the sync 5 minutes after the previous run ended.
+[Unit]
+Description=Poll Compono and Compono Playground for updates
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=5min
+
+[Install]
+WantedBy=timers.target
