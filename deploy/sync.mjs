@@ -199,6 +199,7 @@ class Sync {
     }
     this.collectGarbage()
     this.saveState()
+    fs.rmSync(path.join(this.data, 'tmp'), { recursive: true, force: true })
   }
 
   /** Builds a playground release with its Compono builds and switches to it. */
@@ -293,6 +294,12 @@ class Sync {
 
     manifest.versions = versions
     for (const b of builds) {
+      // Built a moment ago for another id (a tag on main's commit).
+      const same = manifest.versions.find((v) => v.path === b.path)
+      if (same) {
+        manifest.versions.push({ ...same, id: b.id, ref: b.ref, label: versionLabel(b.id, b.commit) })
+        continue
+      }
       const built = this.build(release, b, dir, bridge)
       if (built) {
         manifest.versions.push(built)
