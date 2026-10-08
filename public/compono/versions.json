@@ -1,5 +1,4 @@
 {
-  "default": "main",
   "versions": [
     {
       "id": "main",
@@ -7,7 +6,9 @@
       "ref": "main",
       "commit": "5e0657ff3f76ee75773601cd4df2a3f371205c05",
       "go": "go1.26.0",
-      "builtAt": "2026-10-07T21:50:58.775Z"
+      "bridge": "2c414f68f8a179f0b86b619831c218523573a228",
+      "path": "5e0657ff3f-2c414f68f8",
+      "builtAt": "2026-10-08T09:35:05.074Z"
     }
   ]
 }
