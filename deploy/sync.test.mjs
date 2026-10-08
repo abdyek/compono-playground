@@ -27,7 +27,7 @@ describe('plan', () => {
   it('keeps up to date builds', () => {
     const manifest = { versions: [entry('main', 'm1'), entry('v0.7.0', 't1')] }
     const desired = desiredVersions('m1', { 'v0.7.0': 't1' })
-    expect(plan(manifest, desired, bridge, [])).toEqual({ versions: manifest.versions, builds: [] })
+    expect(plan(manifest, desired, bridge, [])).toEqual({ versions: manifest.versions, builds: [], skipped: [] })
   })
 
   it('builds a new main commit and drops deleted tags', () => {
@@ -56,8 +56,11 @@ describe('plan', () => {
 
   it('keeps the current build when the new one failed recently', () => {
     const old = entry('main', 'm1')
-    const { versions, builds } = plan({ versions: [old] }, desiredVersions('m2', {}), bridge, [buildPath('m2', bridge)])
+    const { versions, builds, skipped } = plan({ versions: [old] }, desiredVersions('m2', {}), bridge, [
+      buildPath('m2', bridge),
+    ])
     expect(builds).toEqual([])
     expect(versions).toEqual([old])
+    expect(skipped.map((s) => s.commit)).toEqual(['m2'])
   })
 })

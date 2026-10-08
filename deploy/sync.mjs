@@ -68,13 +68,14 @@ export function desiredVersions(mainCommit, tags) {
 
 /**
  * Compares a release's manifest with the desired versions. Returns the
- * versions that need no build and the builds to make. A build that failed
+ * versions that need no build, the builds to make and the skipped ones. A build that failed
  * recently (blocked lists build paths) isn't tried; the version it would
  * replace is kept. Versions that aren't desired anymore are dropped.
  */
 export function plan(manifest, desired, bridge, blocked) {
   const versions = []
   const builds = []
+  const skipped = []
   for (const d of desired) {
     const target = buildPath(d.commit, bridge)
     const current = manifest.versions.find((v) => v.id === d.id)
@@ -90,11 +91,12 @@ export function plan(manifest, desired, bridge, blocked) {
     }
     if (blocked.includes(target)) {
       if (current) versions.push(current)
+      skipped.push({ ...d, path: target, current })
       continue
     }
     builds.push({ ...d, path: target, current })
   }
-  return { versions, builds }
+  return { versions, builds, skipped }
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +186,7 @@ class Sync {
     const release = latestTag(Object.keys(tagCommits(this.playground)))
     if (!release) {
       log('The playground has no release tag yet; nothing to deploy.')
-      return
+      return 0
     }
     if (selfUpdate) {
       // The next run uses the sync script of the newest release.
@@ -200,6 +202,8 @@ class Sync {
     this.collectGarbage()
     this.saveState()
     fs.rmSync(path.join(this.data, 'tmp'), { recursive: true, force: true })
+    // The rest was deployed; the failure marks the run (systemctl --failed).
+    return this.buildFailed ? 1 : 0
   }
 
   /** Builds a playground release with its Compono builds and switches to it. */
@@ -290,7 +294,11 @@ class Sync {
     for (const [p, at] of Object.entries(this.state.failed)) {
       if (now - at >= RETRY_FAILED_MS) delete this.state.failed[p]
     }
-    const { versions, builds } = plan(manifest, desired, bridge, Object.keys(this.state.failed))
+    const { versions, builds, skipped } = plan(manifest, desired, bridge, Object.keys(this.state.failed))
+    for (const b of skipped) {
+      const kept = b.current ? `; ${b.current.label} stays` : ''
+      log(`Compono ${b.id} (${b.commit.slice(0, 7)}) failed to build recently and is not tried yet${kept}.`)
+    }
 
     manifest.versions = versions
     for (const b of builds) {
@@ -338,6 +346,7 @@ class Sync {
       console.error(`Building Compono ${b.id} (${b.commit.slice(0, 7)}) failed: ${err.message}`)
       console.error(`It is tried again in ${RETRY_FAILED_MS / 3600000} hours or when the commit or the bridge changes.`)
       this.state.failed[b.path] = Date.now()
+      this.buildFailed = true
       return null
     } finally {
       fs.rmSync(work, { recursive: true, force: true })
@@ -401,7 +410,7 @@ async function main() {
     return
   }
   try {
-    await new Sync(data, playground, componoRepo).run({ selfUpdate })
+    process.exitCode = await new Sync(data, playground, componoRepo).run({ selfUpdate })
   } finally {
     unlock()
   }
