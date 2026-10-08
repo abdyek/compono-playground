@@ -9,7 +9,7 @@ Compono runs in your browser: it is compiled to WebAssembly and the playground i
 - **Source, global components and context.** Globals are given to `Convert` with `WithGlobalComponent`, the context (a JSON object) with `WithContext`. JSON integers become Go `int`s; floats and `null` reach Compono as they are, so its own fatal error shows.
 - **Diagnostics.** Each diagnostic shows its code, message, location and call chain. The dropped unit is underlined in its editor; clicking a diagnostic or a call in its chain selects it.
 - **Fatal errors.** Errors returned by `Convert`, invalid context JSON, recovered panics and conversions that run longer than 5 seconds are shown in place of the output.
-- **Output.** An unstyled preview in a sandboxed iframe that runs no scripts, and the exact HTML.
+- **Output.** An unstyled preview in a sandboxed iframe that runs no scripts, and the exact HTML. The preview can use the browser's dark defaults; the choice is remembered in the browser.
 - **Versions.** Every Compono version the playground was built with can be picked. Tags are listed by name (`v0.7.5`), branches with their commit (`main (5e0657f)`).
 - **Share links.** The whole input, with the version, is compressed into the link's hash. Your last input is also kept in the browser.
 
