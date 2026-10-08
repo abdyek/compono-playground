@@ -1,0 +1,25 @@
+# Builds and deploys Compono Playground. Started by
+# compono-playground-sync.timer; see docs/DEPLOY.md.
+[Unit]
+Description=Build and deploy Compono Playground
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=compono-playground
+Group=compono-playground
+Environment=HOME=/var/lib/compono-playground
+Environment=COMPONO_PLAYGROUND_DATA=/var/lib/compono-playground
+# Go and Node.js must be on the PATH; adjust for where they are installed.
+Environment=PATH=/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/var/lib/compono-playground
+ExecStart=/usr/bin/env node /var/lib/compono-playground/repos/playground/deploy/sync.mjs --self-update
+TimeoutStartSec=1h
+Nice=10
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/compono-playground

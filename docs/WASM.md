@@ -1,24 +1,50 @@
 # Building Compono for the playground
 
-The playground runs Compono as WebAssembly. Each Compono version is a separate build in `public/compono/<id>/`, listed in `public/compono/versions.json`. Building is manual: run the script, check the result, commit it.
+The playground runs Compono as WebAssembly. Builds aren't in the repository: in production `deploy/sync.mjs` makes them ([DEPLOY.md](DEPLOY.md)), locally `scripts/build-wasm.sh` does.
 
 ## How it fits together
 
 ```
-wasm/ (Go)                       public/compono/<id>/            src/compono/ (TypeScript)
+wasm/ (Go)                       compono/<path>/                 src/compono/ (TypeScript)
 convert.go  Request -> Response  compono.wasm  the bridge +      worker.ts  loads wasm_exec.js and
 main_js.go  componoConvert()                   Compono           compono.wasm, calls componoConvert
                                  wasm_exec.js  Go's JS runtime   runner.ts  one worker per version,
                                                for that build               timeouts, crashes
 ```
 
-- `wasm/` is a Go module that imports `github.com/umono-cms/compono`. It has no fixed Compono version: the build script points it to the ref being built.
+- `wasm/` is a Go module that imports `github.com/umono-cms/compono`. It has no fixed Compono version: the build points it to the Compono tree being built (`go mod edit -replace`).
 - `componoConvert(request)` takes and returns JSON. Its shapes are `Request` and `Response` in `wasm/convert.go` and the same types in `src/compono/types.ts`. Change both together.
-- `wasm_exec.js` belongs to the Go version that built the `.wasm` file; they can't be mixed. The script copies it next to each build.
+- `wasm_exec.js` belongs to the Go version that built the `.wasm` file; they can't be mixed. Each build has its own copy.
 
-## Adding or updating a version
+## The manifest
 
-Requires Go (1.23+), git and Node.js.
+`compono/versions.json` lists the builds a playground serves ([scripts/lib/manifest.mjs](../scripts/lib/manifest.mjs)):
+
+```json
+{
+  "versions": [
+    {
+      "id": "main",
+      "label": "main (5e0657f)",
+      "ref": "main",
+      "commit": "5e0657ff3f76ee75773601cd4df2a3f371205c05",
+      "go": "go1.26.0",
+      "bridge": "2c414f68f8a179f0b86b619831c218523573a228",
+      "path": "5e0657ff3f-2c414f68f8",
+      "builtAt": "2026-10-08T09:35:05.074Z"
+    }
+  ]
+}
+```
+
+- `id` is what the version picker and share links use. A tag is listed by its name (`v0.7.5`), anything else with its commit (`main (5e0657f)`).
+- `bridge` is the git tree hash of `wasm/` the build was made with. The frontend and the bridge are released together, so a playground release only serves builds of its own bridge.
+- `path` is named after the Compono commit and the bridge. A published build never changes, so it can be cached for good, and a tag on main's commit shares main's build.
+- Branches come first, then tags from newest to oldest. The playground opens the newest tag, or the first version when there is no tag.
+
+## Building locally
+
+Requires Go 1.23+, git and Node.js.
 
 ```sh
 scripts/build-wasm.sh <ref> [repo]
@@ -27,44 +53,16 @@ scripts/build-wasm.sh <ref> [repo]
 - `ref` is a tag (`v0.7.5`), a branch (`main`) or a commit.
 - `repo` defaults to `https://github.com/umono-cms/compono.git`. A local clone works too, e.g. to try an unpublished branch: `scripts/build-wasm.sh my-branch ../compono`. Only committed changes are built.
 
-The script:
+It clones `repo` at `ref`, compiles it with `scripts/compile-wasm.sh` into `public/compono/<path>/` and lists it in `public/compono/versions.json`, replacing an earlier build of the same id. With uncommitted changes in `wasm/` the bridge is listed as `dev`.
 
-1. clones `repo` and checks out `ref`,
-2. copies `wasm/` to a temporary directory and points it to the clone (`go mod edit -replace`),
-3. runs the bridge's Go tests against that Compono,
-4. builds `public/compono/<id>/compono.wasm` with `GOOS=js GOARCH=wasm` and copies `wasm_exec.js` next to it,
-5. adds or replaces the version in `public/compono/versions.json`.
-
-A tag is published under its name: id and label `v0.7.5`. Anything else is published under the ref's name with the commit in its label: id `main`, label `main (5e0657f)`. Building `main` again replaces the previous `main` build.
-
-Then check it and commit:
-
-```sh
-npm test           # runs the examples against the default version
-npm run dev        # try the new version in the version picker
-git add public/compono
-git commit -m "build: update compono main to 5e0657f"
-```
-
-## The default version
-
-`versions.json` has a `default`: the version a new visitor gets. The script sets it only when it is missing, so it stays `main` until you change it. When v0.7 is released, build the tag and set `"default"` to it by hand:
-
-```json
-{
-  "default": "v0.7.0",
-  "versions": [ ... ]
-}
-```
-
-Versions are ordered branches first, then tags from newest to oldest. Removing a version is deleting its directory and its entry; share links made with it open with the default version and a notice.
+`scripts/compile-wasm.sh <compono-dir> <out-dir>` is the step both the local build and the deploy use: it points a copy of `wasm/` to a Compono tree, runs the bridge's Go tests against it, and builds `compono.wasm` with `GOOS=js GOARCH=wasm` next to `wasm_exec.js`.
 
 ## Compatibility
 
-The bridge is written against the v0.7 API: `Convert(source, writer, opts...) ([]Diagnostic, error)`, `WithGlobalComponent(name, source)`, `WithContext(map[string]any)` and `*ComponoError`. Versions before v0.7 can't be built. If a later version changes this API, the bridge's tests fail in step 3 and the bridge has to be updated, keeping it buildable for the versions still listed.
+The bridge is written against the v0.7 API: `Convert(source, writer, opts...) ([]Diagnostic, error)`, `WithGlobalComponent(name, source)`, `WithContext(map[string]any)` and `*ComponoError`. Versions before v0.7 aren't built. If Compono changes this API, the bridge's tests fail, the deploy keeps the last build that worked and logs the failure, and the bridge has to be updated.
 
-The examples (`src/state/examples.ts`) are written for the default version, and `npm test` checks them against it. When the default changes (e.g. global parameter lines become `~ title = ""` in v0.7), update the examples and their snapshots (`npx vitest run -u`).
+The examples (`src/state/examples.ts`) are written for the version the playground opens by default, and `npm test` checks them against the local build of that version. When its syntax changes (e.g. global parameter lines become `~ title = ""` in v0.7), update the examples and their snapshots (`npx vitest run -u`).
 
 ## Size
 
-A build is about 5.4 MB, 1.4 MB gzipped. The server should compress `.wasm` files (see the README). TinyGo would make it smaller but supports less of the standard library and reflection that Compono's context uses, so the standard Go toolchain is used.
+A build is about 5.4 MB, 1.4 MB gzipped. The server should compress `.wasm` files ([deploy/nginx.conf](../deploy/nginx.conf)). TinyGo would make it smaller but supports less of the standard library and reflection that Compono's context uses, so the standard Go toolchain is used.

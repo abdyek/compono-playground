@@ -1,40 +1,43 @@
-// Adds or replaces a Compono version in the versions manifest.
+// Moves a local build into public/compono/ and lists it in the manifest,
+// replacing an earlier build of the same id.
 //
-// Usage: node scripts/register-version.mjs <manifest> <id> <label> <ref> <commit> <go>
-//
-// Branch builds come first, then tags from newest to oldest. The default
-// version is kept; it is set only when the manifest has none.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+// Usage: node scripts/register-version.mjs <compono-dir> <build-dir> <id> <ref> <commit> <go> <bridge>
+import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { buildPath, readManifest, versionLabel, writeManifest } from './lib/manifest.mjs'
 
-const [manifestPath, id, label, ref, commit, go] = process.argv.slice(2)
-if (!go) {
-  console.error('usage: register-version.mjs <manifest> <id> <label> <ref> <commit> <go>')
+const [dir, build, id, ref, commit, go, bridge] = process.argv.slice(2)
+if (!bridge) {
+  console.error('usage: register-version.mjs <compono-dir> <build-dir> <id> <ref> <commit> <go> <bridge>')
   process.exit(1)
 }
 
-const manifest = existsSync(manifestPath)
-  ? JSON.parse(readFileSync(manifestPath, 'utf8'))
-  : { default: id, versions: [] }
+mkdirSync(dir, { recursive: true })
+const manifest = readManifest(dir)
+const path = buildPath(commit, bridge)
 
-const entry = { id, label, ref, commit, go, builtAt: new Date().toISOString() }
-manifest.versions = manifest.versions.filter((v) => v.id !== id).concat(entry)
-
-const tag = (v) => v.id.match(/^v(\d+)\.(\d+)\.(\d+)/)
-manifest.versions.sort((a, b) => {
-  const ta = tag(a)
-  const tb = tag(b)
-  if (!ta && !tb) return a.id.localeCompare(b.id)
-  if (!ta) return -1
-  if (!tb) return 1
-  for (let i = 1; i <= 3; i++) {
-    const diff = Number(tb[i]) - Number(ta[i])
-    if (diff !== 0) return diff
-  }
-  return b.id.localeCompare(a.id)
-})
-
-if (!manifest.versions.some((v) => v.id === manifest.default)) {
-  manifest.default = id
+const old = manifest.versions.find((v) => v.id === id)
+manifest.versions = manifest.versions.filter((v) => v.id !== id)
+if (old && old.path !== path && !manifest.versions.some((v) => v.path === old.path)) {
+  rmSync(join(dir, old.path), { recursive: true, force: true })
 }
 
-writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
+rmSync(join(dir, path), { recursive: true, force: true })
+// Copied, not renamed: the build is usually on another file system (/tmp).
+cpSync(build, join(dir, path), { recursive: true })
+
+manifest.versions.push({
+  id,
+  label: versionLabel(id, commit),
+  ref,
+  commit,
+  go,
+  bridge,
+  path,
+  builtAt: new Date().toISOString(),
+})
+writeManifest(dir, manifest)
+console.log(`Listed ${versionLabel(id, commit)} at public/compono/${path}`)
+if (!existsSync(join(dir, path, 'compono.wasm'))) {
+  process.exit(1)
+}

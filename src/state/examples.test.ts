@@ -1,15 +1,16 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { ConvertRequest, ConvertResponse } from '../compono/types'
-import { loadDefaultBridge } from '../testing/wasm'
+import { hasLocalBuild, loadDefaultBridge } from '../testing/wasm'
 import { examples } from './examples'
 
 let convert: (req: ConvertRequest) => ConvertResponse
 
-beforeAll(async () => {
-  convert = await loadDefaultBridge()
-})
+// The examples need a Compono build: scripts/build-wasm.sh main
+describe.skipIf(!hasLocalBuild)('examples', () => {
+  beforeAll(async () => {
+    convert = await loadDefaultBridge()
+  })
 
-describe('examples', () => {
   for (const ex of examples) {
     it(ex.id, () => {
       const res = convert({ source: ex.source, globals: ex.globals, context: ex.context })

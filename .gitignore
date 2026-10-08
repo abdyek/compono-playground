@@ -59,3 +59,7 @@ dist/
 ### WASM bridge ###
 # go.sum depends on the Compono ref; scripts/build-wasm.sh creates it.
 wasm/go.sum
+
+### Compono builds ###
+# Built by scripts/build-wasm.sh (local) and deploy/sync.mjs (production).
+public/compono/
