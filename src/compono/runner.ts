@@ -1,4 +1,4 @@
-import type { ConvertRequest, ConvertResponse, Fatal } from './types'
+import type { ComponoVersion, ConvertRequest, ConvertResponse, Fatal } from './types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { versionBaseURL } from './versions'
 
@@ -33,7 +33,7 @@ export class ComponoRunner {
   private nextId = 1
 
   constructor(
-    readonly versionId: string,
+    readonly version: ComponoVersion,
     private readonly timeoutMs = 5000,
   ) {}
 
@@ -74,7 +74,7 @@ export class ComponoRunner {
             resolve(null)
             break
           case 'load-failed':
-            resolve({ kind: 'load', message: `Could not load Compono ${this.versionId}: ${msg.message}` })
+            resolve({ kind: 'load', message: `Could not load Compono ${this.version.label}: ${msg.message}` })
             break
           case 'converted':
             this.finish(msg.id, { response: msg.response, duration: msg.duration })
@@ -96,7 +96,7 @@ export class ComponoRunner {
         e.preventDefault()
         resolve({ kind: 'load', message: `Could not start the Compono worker: ${e.message}` })
       }
-      worker.postMessage({ type: 'load', base: versionBaseURL(this.versionId) } satisfies WorkerRequest)
+      worker.postMessage({ type: 'load', base: versionBaseURL(this.version) } satisfies WorkerRequest)
     })
   }
 

@@ -61,16 +61,21 @@ export interface ConvertResponse {
   fatal: Fatal | null
 }
 
+/** A Compono build. See scripts/lib/manifest.mjs. */
 export interface ComponoVersion {
   id: string
   label: string
   ref: string
   commit: string
   go: string
+  /** Git tree hash of the bridge it was built with. */
+  bridge: string
+  /** Its directory under compono/. */
+  path: string
   builtAt: string
 }
 
 export interface VersionManifest {
-  default: string
+  /** Branches first, then tags from newest to oldest. */
   versions: ComponoVersion[]
 }

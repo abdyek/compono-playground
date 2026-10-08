@@ -1,7 +1,7 @@
 import { reactive, ref, shallowRef, watch } from 'vue'
 import { ComponoRunner } from '../compono/runner'
 import type { ComponoVersion, ConvertResponse } from '../compono/types'
-import { loadManifest } from '../compono/versions'
+import { defaultVersion, loadManifest } from '../compono/versions'
 import { examples, type Example } from './examples'
 import { decodeSnapshot, encodeSnapshot, type Snapshot } from './share'
 
@@ -113,9 +113,13 @@ async function convert() {
   if (!input.version) {
     return
   }
-  if (runner?.versionId !== input.version) {
+  if (runner?.version.id !== input.version) {
+    const version = versions.value.find((v) => v.id === input.version)
+    if (!version) {
+      return
+    }
     runner?.dispose()
-    runner = new ComponoRunner(input.version)
+    runner = new ComponoRunner(version)
     status.value = 'loading'
     await runner.load()
   }
@@ -139,7 +143,7 @@ function schedule(delay = DEBOUNCE_MS) {
   timer = setTimeout(() => void convert(), delay)
 }
 
-let defaultVersion = ''
+let defaultVersionId = ''
 // Set when the input is replaced by a share link, so that the change doesn't
 // remove the link from the address bar.
 let openingLink = false
@@ -149,9 +153,9 @@ function useVersion(wanted: string | undefined, fromLink: boolean) {
     input.version = wanted
     return
   }
-  input.version = defaultVersion
+  input.version = defaultVersionId
   if (fromLink && wanted) {
-    const label = versions.value.find((v) => v.id === defaultVersion)?.label ?? defaultVersion
+    const label = versions.value.find((v) => v.id === defaultVersionId)?.label ?? defaultVersionId
     notice.value = `This link was made with Compono ${wanted}, which isn't available anymore. It is shown with ${label}.`
   }
 }
@@ -177,7 +181,7 @@ export async function start() {
   try {
     const manifest = await loadManifest()
     versions.value = manifest.versions
-    defaultVersion = manifest.default
+    defaultVersionId = defaultVersion(manifest.versions)!.id
   } catch (err) {
     notice.value = err instanceof Error ? err.message : String(err)
     status.value = 'idle'
