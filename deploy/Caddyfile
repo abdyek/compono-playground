@@ -1,0 +1,43 @@
+# Compono Playground on Caddy. Caddy gets the TLS certificate itself.
+play.compono.md {
+	# The deployed release; deploy/sync.mjs switches the symlink.
+	root * /var/lib/compono-playground/current
+
+	encode {
+		zstd
+		gzip
+		match {
+			header Content-Type text/*
+			header Content-Type application/javascript*
+			header Content-Type application/json*
+			header Content-Type application/wasm*
+			header Content-Type image/svg+xml*
+		}
+	}
+
+	# Hashed file names and Compono builds named after their commit: their
+	# content never changes. Everything else is revalidated. The matchers
+	# don't overlap, so the order of the header directives doesn't matter.
+	@immutable {
+		path /assets/* /compono/*
+		not path /compono/versions.json
+	}
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	@revalidate {
+		not path /assets/* /compono/*
+	}
+	header @revalidate Cache-Control "no-cache"
+	header /compono/versions.json Cache-Control "no-cache"
+
+	# Other paths fall back to the page. A missing asset or build is a 404, not
+	# the page, so that the playground reports it clearly.
+	@page {
+		not path /assets/* /compono/*
+		file {
+			try_files {path} /index.html
+		}
+	}
+	rewrite @page {file_match.relative}
+	file_server
+}

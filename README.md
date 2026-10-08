@@ -32,7 +32,7 @@ npm run build                # type checks and builds the static site into dist/
 ```
 wasm/                  Go bridge between the playground and Compono, compiled to WASM
 scripts/               Building Compono (build-wasm.sh locally, compile-wasm.sh for both)
-deploy/                The sync that deploys play.compono.md, its systemd units and nginx config
+deploy/                The sync that deploys play.compono.md, its systemd units and web server configs
 src/compono/           The Web Worker that runs a WASM build, and its client
 src/editor/            CodeMirror setup and the Compono highlighter
 src/state/             The playground's state, examples and share links
