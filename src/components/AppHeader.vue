@@ -45,6 +45,11 @@ const statusText = computed(() => {
   }
 })
 
+const playgroundVersion = __PLAYGROUND_VERSION__
+const playgroundRelease = /^v\d+\.\d+\.\d+$/.test(playgroundVersion)
+  ? `https://github.com/umono-cms/compono-playground/releases/tag/${playgroundVersion}`
+  : undefined
+
 const currentVersion = computed(() => versions.value.find((v) => v.id === input.version))
 </script>
 
@@ -84,6 +89,17 @@ const currentVersion = computed(() => versions.value.find((v) => v.id === input.
       <span class="status" aria-live="polite">{{ statusText }}</span>
       <a href="https://github.com/umono-cms/compono" target="_blank" rel="noopener noreferrer">Compono</a>
       <a href="https://github.com/umono-cms/compono-playground" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a
+        v-if="playgroundRelease"
+        class="version"
+        :href="playgroundRelease"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Playground version"
+      >
+        {{ playgroundVersion }}
+      </a>
+      <span v-else class="version" title="Playground version">{{ playgroundVersion }}</span>
     </div>
   </header>
 </template>
@@ -155,6 +171,12 @@ select {
   gap: 16px;
   margin-left: auto;
   font-size: 13px;
+}
+
+.version {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 12px;
 }
 
 .status {
