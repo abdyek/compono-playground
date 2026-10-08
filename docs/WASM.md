@@ -65,4 +65,4 @@ The examples (`src/state/examples.ts`) are written for the version the playgroun
 
 ## Size
 
-A build is about 5.4 MB, 1.4 MB gzipped. The server should compress `.wasm` files ([deploy/nginx.conf](../deploy/nginx.conf)). TinyGo would make it smaller but supports less of the standard library and reflection that Compono's context uses, so the standard Go toolchain is used.
+A build is about 5.4 MB, 1.4 MB gzipped. The web server should compress `.wasm` files; the configs in `deploy/` do ([Caddyfile](../deploy/Caddyfile), [nginx.conf](../deploy/nginx.conf)). TinyGo would make it smaller but supports less of the standard library and reflection that Compono's context uses, so the standard Go toolchain is used.

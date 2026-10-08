@@ -1,12 +1,12 @@
 # Deploying play.compono.md
 
-The playground deploys itself on a server with systemd and nginx. A timer runs [`deploy/sync.mjs`](../deploy/sync.mjs) 5 minutes after its previous run ended. Each run:
+The playground deploys itself on a server with systemd and a web server: Caddy or nginx. A timer runs [`deploy/sync.mjs`](../deploy/sync.mjs) 5 minutes after its previous run ended. Each run:
 
 1. fetches the playground and Compono,
 2. deploys the newest playground release tag (`v1.2.3`) if it isn't deployed yet,
 3. builds the Compono versions the deployed release is missing: main's newest commit and every release tag since v0.7.0.
 
-There is no server process: nginx serves static files, and a deploy switches a symlink.
+There is no server process: the web server serves static files, and a deploy switches a symlink.
 
 ## What it does
 
@@ -27,20 +27,20 @@ The sync script updates itself: each run checks out the newest release in its ow
   repos/compono/       clone of Compono
   sources/<tag>/       source of a release (its bridge)
   releases/<tag>/      a built release; compono/ holds its Compono builds
-  current              symlink to the deployed release, nginx's root
+  current              symlink to the deployed release, the web server's root
   state.json           recently failed builds, builds waiting to be deleted
 ```
 
 ## Setup
 
-Requires git, Go 1.23+ (what Compono's `go.mod` needs), Node.js 20.19+ and nginx.
+Requires git, Go 1.23+ (what Compono's `go.mod` needs), Node.js 20.19+ and Caddy (or nginx).
 
 1. Create a user for the sync:
 
    ```sh
    sudo useradd --system --create-home --home-dir /var/lib/compono-playground \
      --shell /usr/sbin/nologin compono-playground
-   # nginx reads the site from here.
+   # The web server reads the site from here.
    sudo chmod 755 /var/lib/compono-playground
    ```
 
@@ -62,7 +62,10 @@ Requires git, Go 1.23+ (what Compono's `go.mod` needs), Node.js 20.19+ and nginx
 
    The units are copies: when a release changes them, copy them again.
 
-4. Install the nginx site from [`deploy/nginx.conf`](../deploy/nginx.conf), add TLS (e.g. `certbot --nginx -d play.compono.md`) and reload nginx.
+4. Configure the web server. Both configs serve `current`, compress text and `.wasm` files, cache assets and Compono builds for good, revalidate the rest, and answer a missing asset or build with a 404 instead of the page.
+
+   - **Caddy:** add the site block from [`deploy/Caddyfile`](../deploy/Caddyfile) to your Caddyfile (or `import` it) and reload: `sudo systemctl reload caddy`. Caddy gets the TLS certificate itself. It follows the `current` symlink on every request, so a deploy needs no reload.
+   - **nginx:** install the site from [`deploy/nginx.conf`](../deploy/nginx.conf), add TLS (e.g. `certbot --nginx -d play.compono.md`) and reload nginx.
 
 5. Tag a release of the playground if there is none yet:
 

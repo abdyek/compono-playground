@@ -12,7 +12,7 @@
 //   repos/compono/       clone of Compono
 //   sources/<tag>/       source of a playground release (its WASM bridge)
 //   releases/<tag>/      a built release; compono/ holds its Compono builds
-//   current              symlink to the release nginx serves
+//   current              symlink to the release the web server serves
 //   tmp/                 work in progress
 //   state.json           recently failed builds, builds waiting to be deleted
 //
