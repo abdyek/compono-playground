@@ -3,14 +3,8 @@ import { ComponoRunner } from '../compono/runner'
 import type { ComponoVersion, ConvertResponse } from '../compono/types'
 import { defaultVersion, loadManifest } from '../compono/versions'
 import { examples, type Example } from './examples'
+import { addTo, remove, toComponents, toEntries, type GlobalEntry } from './globals'
 import { decodeSnapshot, encodeSnapshot, type Snapshot } from './share'
-
-export interface GlobalEntry {
-  /** Stable key for the UI; not part of the conversion. */
-  id: number
-  name: string
-  source: string
-}
 
 export interface Result extends ConvertResponse {
   duration?: number
@@ -18,8 +12,6 @@ export interface Result extends ConvertResponse {
 
 const STORAGE_KEY = 'compono-playground'
 const DEBOUNCE_MS = 200
-
-let nextGlobalId = 1
 
 export const input = reactive({
   version: '',
@@ -34,15 +26,11 @@ export const notice = ref('')
 export const status = ref<'starting' | 'loading' | 'converting' | 'idle'>('starting')
 export const result = shallowRef<Result | null>(null)
 
-function toEntries(globals: { name: string; source: string }[]): GlobalEntry[] {
-  return globals.map((g) => ({ id: nextGlobalId++, name: g.name, source: g.source }))
-}
-
 export function snapshot(): Snapshot {
   return {
     version: input.version,
     source: input.source,
-    globals: input.globals.map(({ name, source }) => ({ name, source })),
+    globals: toComponents(input.globals),
     context: input.context,
   }
 }
@@ -57,17 +45,14 @@ export function loadExample(example: Example) {
   apply(example)
 }
 
-export function addGlobal(): GlobalEntry {
-  const taken = new Set(input.globals.map((g) => g.name))
-  let n = input.globals.length + 1
-  while (taken.has(`GLOBAL_${n}`)) n++
-  const entry: GlobalEntry = { id: nextGlobalId++, name: `GLOBAL_${n}`, source: '' }
-  input.globals.push(entry)
-  return entry
+/** Adds a global, or a sub-component to owner. */
+export function addGlobal(owner?: GlobalEntry): GlobalEntry {
+  return owner ? addTo(owner.globals, 'SUB') : addTo(input.globals, 'GLOBAL')
 }
 
+/** Removes a global with its sub-components. */
 export function removeGlobal(id: number) {
-  input.globals = input.globals.filter((g) => g.id !== id)
+  remove(input.globals, id)
 }
 
 /** Puts a share link of the current input into the address bar and returns it. */
@@ -127,7 +112,7 @@ async function convert() {
   status.value = 'converting'
   const res = await current.convert({
     source: input.source,
-    globals: input.globals.map(({ name, source }) => ({ name, source })),
+    globals: toComponents(input.globals),
     context: input.context,
   })
   if (res === null || current !== runner) {

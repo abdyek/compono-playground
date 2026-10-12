@@ -3,6 +3,10 @@
 export interface GlobalComponent {
   name: string
   source: string
+  /** Given WithIsolatedScope: calls in it and its sub-components don't resolve outside its inner scope. */
+  isolated?: boolean
+  /** Its sub-components, its inner scope. */
+  globals?: GlobalComponent[]
 }
 
 export interface ConvertRequest {
