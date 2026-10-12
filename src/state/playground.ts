@@ -1,8 +1,9 @@
 import { reactive, ref, shallowRef, watch } from 'vue'
 import { ComponoRunner } from '../compono/runner'
-import type { ComponoVersion, ConvertResponse } from '../compono/types'
+import { loadGoldenExamples } from '../compono/examples'
+import type { ComponoVersion, ConvertResponse, Example } from '../compono/types'
 import { defaultVersion, loadManifest } from '../compono/versions'
-import { examples, type Example } from './examples'
+import { isUnchanged, welcome } from './examples'
 import { addTo, remove, toComponents, toEntries, type GlobalEntry } from './globals'
 import { decodeSnapshot, encodeSnapshot, type Snapshot } from './share'
 
@@ -26,6 +27,21 @@ export const notice = ref('')
 export const status = ref<'starting' | 'loading' | 'converting' | 'idle'>('starting')
 export const result = shallowRef<Result | null>(null)
 
+/** The welcome example, then the golden examples of the selected build. */
+export const examples = shallowRef<Example[]>([welcome])
+/** 'none' for a build without examples. */
+export const examplesState = ref<'loading' | 'ready' | 'none' | 'failed'>('loading')
+/** The id of the last loaded example, or '' after a share link. */
+export const currentExample = ref('')
+// The current example as it was loaded, to tell whether the input changed.
+// Unknown after a reload until the examples are loaded.
+let loaded: Example | undefined
+
+/** What is kept in the browser: the last input and the example it came from. */
+interface Stored extends Snapshot {
+  example?: string
+}
+
 export function snapshot(): Snapshot {
   return {
     version: input.version,
@@ -43,6 +59,62 @@ function apply(s: Omit<Snapshot, 'version'>) {
 
 export function loadExample(example: Example) {
   apply(example)
+  currentExample.value = example.id
+  loaded = example
+}
+
+/**
+ * Whether loading an example would replace input of the user: anything but
+ * the current example as it was loaded.
+ */
+export function hasOwnInput(): boolean {
+  const current = loaded ?? examples.value.find((ex) => ex.id === currentExample.value)
+  if (current && isUnchanged(current, snapshot())) {
+    return false
+  }
+  return Boolean(input.source.trim() || input.globals.length || input.context.trim())
+}
+
+let examplesRequest = 0
+
+/**
+ * Loads the examples of the selected version. If the current example is
+ * unchanged, it is reloaded as the new version has it.
+ */
+async function refreshExamples() {
+  const version = versions.value.find((v) => v.id === input.version)
+  if (!version) {
+    return
+  }
+  const request = ++examplesRequest
+  examplesState.value = 'loading'
+  let golden: Example[] | null = null
+  let failed = false
+  try {
+    golden = await loadGoldenExamples(version)
+  } catch {
+    failed = true
+  }
+  if (request !== examplesRequest) {
+    // The version changed again.
+    return
+  }
+  examples.value = [welcome, ...(golden ?? [])]
+  examplesState.value = failed ? 'failed' : golden ? 'ready' : 'none'
+  if (!golden) {
+    // The id is kept for a version that has examples.
+    return
+  }
+  const now = examples.value.find((ex) => ex.id === currentExample.value)
+  if (!now) {
+    currentExample.value = ''
+    loaded = undefined
+    return
+  }
+  if (isUnchanged(loaded ?? now, snapshot())) {
+    if (!isUnchanged(now, snapshot())) apply(now)
+    loaded = now
+  }
 }
 
 /** Adds a global, or a sub-component to owner. */
@@ -63,10 +135,10 @@ export async function share(): Promise<string> {
   return location.href
 }
 
-function readStorage(): Snapshot | null {
+function readStorage(): Stored | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as Snapshot) : null
+    return raw ? (JSON.parse(raw) as Stored) : null
   } catch {
     return null
   }
@@ -74,7 +146,8 @@ function readStorage(): Snapshot | null {
 
 function writeStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()))
+    const stored: Stored = { ...snapshot(), example: currentExample.value }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   } catch {
     // Storage is a convenience; the playground works without it.
   }
@@ -158,6 +231,8 @@ async function openLink(): Promise<boolean> {
   sharedHash = hash
   openingLink = true
   apply(s)
+  currentExample.value = ''
+  loaded = undefined
   useVersion(s.version, true)
   return true
 }
@@ -177,8 +252,9 @@ export async function start() {
     const stored = readStorage()
     if (stored) {
       apply(stored)
+      currentExample.value = stored.example ?? ''
     } else {
-      loadExample(examples[0])
+      loadExample(welcome)
     }
     useVersion(stored?.version, false)
   }
@@ -201,5 +277,7 @@ export async function start() {
     },
     { deep: true },
   )
+  watch(currentExample, writeStorage)
+  watch(() => input.version, () => void refreshExamples(), { immediate: true })
   schedule(0)
 }

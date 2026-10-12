@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { examples } from '../state/examples'
-import { input, loadExample, result, share, status, versions } from '../state/playground'
+import { input, result, share, status, versions } from '../state/playground'
+import ExamplePicker from './ExamplePicker.vue'
 
 const copied = ref(false)
 const shareError = ref('')
@@ -18,19 +18,6 @@ async function onShare() {
   } catch {
     shareError.value = 'Copy the link from the address bar.'
   }
-}
-
-function onExample(e: Event) {
-  const select = e.target as HTMLSelectElement
-  const example = examples.find((ex) => ex.id === select.value)
-  select.value = ''
-  if (!example) {
-    return
-  }
-  if (input.source.trim() && !confirm(`Replace your input with the "${example.title}" example?`)) {
-    return
-  }
-  loadExample(example)
 }
 
 const statusText = computed(() => {
@@ -71,13 +58,7 @@ const currentVersion = computed(() => versions.value.find((v) => v.id === input.
         </select>
       </label>
 
-      <label class="field">
-        <span>Examples</span>
-        <select value="" @change="onExample">
-          <option value="" disabled>Load an example…</option>
-          <option v-for="ex in examples" :key="ex.id" :value="ex.id">{{ ex.title }}</option>
-        </select>
-      </label>
+      <ExamplePicker />
 
       <button type="button" class="button primary" @click="onShare">
         {{ copied ? 'Link copied' : 'Share' }}

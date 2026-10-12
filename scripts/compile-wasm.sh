@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Compiles the WASM bridge (wasm/ next to this script) against a Compono
-# source tree. Runs the bridge's tests first.
+# source tree. Runs the bridge's tests first, which also convert every golden
+# test case of the tree through the bridge.
 #
 # Usage: scripts/compile-wasm.sh <compono-dir> <out-dir>
 #
-# Writes <out-dir>/compono.wasm and the wasm_exec.js of the Go that built it.
+# Writes <out-dir>/compono.wasm, the wasm_exec.js of the Go that built it and
+# examples.json, the tree's golden test cases.
 set -euo pipefail
 
 if [[ $# -ne 2 ]]; then
-	sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'
+	sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
 	exit 1
 fi
 
@@ -25,8 +27,9 @@ cd "$work/bridge"
 go mod edit -replace "github.com/umono-cms/compono=$compono"
 go mod tidy
 
-go test ./...
+COMPONO_DIR="$compono" go test ./...
 GOOS=js GOARCH=wasm go build -trimpath -ldflags="-s -w" -o "$out/compono.wasm" .
+go run ./cmd/examples "$compono" "$out/examples.json"
 
 goroot="$(go env GOROOT)"
 if [[ -f "$goroot/lib/wasm/wasm_exec.js" ]]; then

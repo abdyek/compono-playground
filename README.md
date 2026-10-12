@@ -8,6 +8,7 @@ Compono runs in your browser: it is compiled to WebAssembly and the playground i
 
 - **Source, global components and context.** Globals are given to `Convert` with `WithGlobalComponent`, the context (a JSON object) with `WithContext`. JSON integers become Go `int`s; floats and `null` reach Compono as they are, so its own fatal error shows.
 - **Scopes.** A global can have sub-components, shown as `LAYOUT › CARD`, and an isolated scope (`WithIsolatedScope`), marked with a lock. Both are given as options to the `WithGlobalComponent` of their owner.
+- **Examples.** A welcome example, then every golden test case of the selected Compono version, so the examples always match it. Search them by number, name or content, or step through them with ‹ and ›.
 - **Diagnostics.** Each diagnostic shows its code, message, location and call chain. The dropped unit is underlined in its editor; clicking a diagnostic or a call in its chain selects it.
 - **Fatal errors.** Errors returned by `Convert`, invalid context JSON, recovered panics and conversions that run longer than 5 seconds are shown in place of the output.
 - **Output.** An unstyled preview in a sandboxed iframe that runs no scripts, and the exact HTML. The preview can use the browser's dark defaults; the choice is remembered in the browser.
@@ -22,7 +23,7 @@ Requires Node.js 20.19+ and Go 1.23+. Compono builds aren't in the repository; b
 npm install
 scripts/build-wasm.sh main   # builds Compono's main into public/compono/
 npm run dev                  # http://localhost:5173
-npm test                     # unit tests; the example tests need a build
+npm test                     # unit tests; the welcome example's test needs a build
 npm run build                # type checks and builds the static site into dist/
 ```
 
