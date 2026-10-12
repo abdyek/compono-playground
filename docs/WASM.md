@@ -59,7 +59,7 @@ It clones `repo` at `ref`, compiles it with `scripts/compile-wasm.sh` into `publ
 
 ## Compatibility
 
-The bridge is written against the v0.7 API: `Convert(source, writer, opts...) ([]Diagnostic, error)`, `WithGlobalComponent(name, source)`, `WithContext(map[string]any)` and `*ComponoError`. Versions before v0.7 aren't built. If Compono changes this API, the bridge's tests fail, the deploy keeps the last build that worked and logs the failure, and the bridge has to be updated.
+The bridge is written against the v0.7 API: `Convert(source, writer, opts...) ([]Diagnostic, error)`, `WithGlobalComponent(name, source, opts...)` with `WithIsolatedScope()` for scopes, `WithContext(map[string]any)` and `*ComponoError`. Versions before v0.7 aren't built. If Compono changes this API, the bridge's tests fail, the deploy keeps the last build that worked and logs the failure, and the bridge has to be updated.
 
 The examples (`src/state/examples.ts`) are written for the version the playground opens by default, and `npm test` checks them against the local build of that version. When its syntax changes (e.g. global parameter lines become `~ title = ""` in v0.7), update the examples and their snapshots (`npx vitest run -u`).
 

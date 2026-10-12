@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import type { Diagnostic, Range } from '../compono/types'
+import { findByPath, flatten, type GlobalEntry } from '../state/globals'
 import { addGlobal, input, removeGlobal, result } from '../state/playground'
 import CodeEditor, { type EditorMark } from './CodeEditor.vue'
 
@@ -20,12 +21,15 @@ function setEditor(tab: Tab, el: unknown) {
 
 const diagnostics = computed<Diagnostic[]>(() => result.value?.diagnostics ?? [])
 
-/** The tab a Compono source path ([] or [GLOBAL, ...]) is edited in. */
+/** Every global, each owner followed by its sub-components. */
+const scoped = computed(() => flatten(input.globals))
+
+/** The tab a Compono source path ([] or [GLOBAL, ...SUB]) is edited in. */
 function tabOf(source: string[]): Tab | undefined {
   if (source.length === 0) {
     return 'source'
   }
-  return input.globals.find((g) => g.name === source[0])?.id
+  return findByPath(input.globals, source)?.id
 }
 
 const marks = computed(() => {
@@ -42,11 +46,11 @@ const marks = computed(() => {
 
 const noMarks: EditorMark[] = []
 
-const activeGlobal = computed(() => input.globals.find((g) => g.id === active.value))
+const activeGlobal = computed(() => scoped.value.find((s) => s.global.id === active.value)?.global)
 
 // Loading an example or a link replaces the globals.
 watch(
-  () => input.globals.map((g) => g.id),
+  () => scoped.value.map((s) => s.global.id),
   (ids) => {
     if (typeof active.value === 'number' && !ids.includes(active.value)) {
       active.value = 'source'
@@ -56,16 +60,19 @@ watch(
 
 const nameIsValid = (name: string) => /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/.test(name)
 
-function onAddGlobal() {
-  active.value = addGlobal().id
+function onAddGlobal(owner?: GlobalEntry) {
+  active.value = addGlobal(owner).id
 }
 
-function onRemoveGlobal(id: number) {
-  const g = input.globals.find((g) => g.id === id)
-  if (g && g.source.trim() && !confirm(`Delete the global component ${g.name}?`)) {
+function onRemoveGlobal(g: GlobalEntry) {
+  const subs = flatten(g.globals).length
+  const question = subs
+    ? `Delete the global component ${g.name} and its ${subs === 1 ? 'sub-component' : `${subs} sub-components`}?`
+    : `Delete the global component ${g.name}?`
+  if ((subs || g.source.trim()) && !confirm(question)) {
     return
   }
-  removeGlobal(id)
+  removeGlobal(g.id)
   active.value = 'source'
 }
 
@@ -97,20 +104,25 @@ defineExpose({ reveal })
         <span v-if="marks.get('source')?.length" class="badge">{{ marks.get('source')!.length }}</span>
       </button>
       <button
-        v-for="g in input.globals"
+        v-for="{ global: g, path } in scoped"
         :key="g.id"
         type="button"
         role="tab"
         class="mono"
         :aria-selected="active === g.id"
         :class="{ active: active === g.id }"
-        :title="`Global component ${g.name}`"
+        :title="`${path.length > 1 ? 'Sub-component' : 'Global component'} ${path.join(' › ')}${g.isolated ? ', isolated scope' : ''}`"
         @click="active = g.id"
       >
+        <span v-if="path.length > 1" class="owners">{{ path.slice(0, -1).join(' › ') }} ›</span>
         {{ g.name || '(unnamed)' }}
+        <svg v-if="g.isolated" class="lock" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor" />
+        </svg>
         <span v-if="marks.get(g.id)?.length" class="badge">{{ marks.get(g.id)!.length }}</span>
       </button>
-      <button type="button" class="add" title="Add a global component" @click="onAddGlobal">+ Global</button>
+      <button type="button" class="add" title="Add a global component" @click="onAddGlobal()">+ Global</button>
       <span class="spacer" />
       <button
         type="button"
@@ -135,7 +147,21 @@ defineExpose({ reveal })
       </label>
       <span v-if="!nameIsValid(activeGlobal.name)" class="hint error">Must be SCREAMING_SNAKE_CASE.</span>
       <span v-else class="hint">Its parameters are defined on its first line.</span>
-      <button type="button" class="delete" @click="onRemoveGlobal(activeGlobal.id)">Delete</button>
+      <label
+        title="WithIsolatedScope: calls in it and its sub-components resolve only to their locals, its sub-components and built-ins."
+      >
+        <input v-model="activeGlobal.isolated" type="checkbox" />
+        Isolated
+      </label>
+      <button
+        type="button"
+        class="add-sub"
+        title="Add a sub-component, visible only from this global and its other sub-components"
+        @click="onAddGlobal(activeGlobal)"
+      >
+        + Sub-component
+      </button>
+      <button type="button" class="delete" @click="onRemoveGlobal(activeGlobal)">Delete</button>
     </div>
     <div v-else-if="active === 'context'" class="toolbar">
       <span class="hint">
@@ -154,13 +180,13 @@ defineExpose({ reveal })
         :marks="marks.get('source') ?? noMarks"
       />
       <CodeEditor
-        v-for="g in input.globals"
+        v-for="{ global: g, path } in scoped"
         v-show="active === g.id"
         :key="g.id"
         :ref="(el) => setEditor(g.id, el)"
         v-model="g.source"
         language="compono"
-        :label="`Global component ${g.name}`"
+        :label="`Global component ${path.join(' › ')}`"
         :marks="marks.get(g.id) ?? noMarks"
       />
       <CodeEditor
@@ -216,6 +242,16 @@ defineExpose({ reveal })
   color: var(--accent);
 }
 
+.owners {
+  color: var(--text-muted);
+}
+
+.lock {
+  width: 11px;
+  height: 11px;
+  color: var(--text-muted);
+}
+
 .spacer {
   flex: 1;
 }
@@ -254,7 +290,7 @@ defineExpose({ reveal })
   gap: 6px;
 }
 
-.toolbar input {
+.toolbar input:not([type='checkbox']) {
   width: 200px;
   padding: 3px 6px;
   border: 1px solid var(--border);
@@ -272,6 +308,15 @@ defineExpose({ reveal })
 
 .hint.error {
   color: var(--error);
+}
+
+.add-sub {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
 }
 
 .delete {

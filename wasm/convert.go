@@ -23,6 +23,11 @@ type Request struct {
 type Global struct {
 	Name   string `json:"name"`
 	Source string `json:"source"`
+	// Isolated gives it WithIsolatedScope: calls in it and in its
+	// sub-components don't resolve outside its inner scope.
+	Isolated bool `json:"isolated,omitempty"`
+	// Globals are its sub-components, its inner scope.
+	Globals []Global `json:"globals,omitempty"`
 }
 
 // Response is the result of a conversion. Either Fatal is set and HTML is
@@ -85,10 +90,7 @@ func Convert(req Request) (res Response) {
 		}
 	}()
 
-	var opts []compono.ConvertOption
-	for _, g := range req.Globals {
-		opts = append(opts, compono.WithGlobalComponent(g.Name, []byte(g.Source)))
-	}
+	opts := globalOpts(req.Globals)
 
 	if strings.TrimSpace(req.Context) != "" {
 		values, err := decodeContext(req.Context)
@@ -130,6 +132,19 @@ func Convert(req Request) (res Response) {
 		})
 	}
 	return res
+}
+
+// globalOpts turns globals and their sub-components into options.
+func globalOpts(globals []Global) []compono.ConvertOption {
+	opts := make([]compono.ConvertOption, 0, len(globals))
+	for _, g := range globals {
+		sub := globalOpts(g.Globals)
+		if g.Isolated {
+			sub = append(sub, compono.WithIsolatedScope())
+		}
+		opts = append(opts, compono.WithGlobalComponent(g.Name, []byte(g.Source), sub...))
+	}
+	return opts
 }
 
 // decodeContext reads the context JSON. It must be an object. Integers become
