@@ -83,3 +83,21 @@ export interface VersionManifest {
   /** Branches first, then tags from newest to oldest. */
   versions: ComponoVersion[]
 }
+
+/** An example: a golden test case of a build (examples.json) or the welcome example. */
+export interface Example {
+  /** The golden case's directory name, or "welcome". */
+  id: string
+  /** The golden case's number. Unused for the welcome example. */
+  number: number
+  title: string
+  source: string
+  globals: GlobalComponent[]
+  /** Context as JSON text. Blank means no context. */
+  context: string
+}
+
+/** examples.json of a build, written by wasm/cmd/examples. */
+export interface ExampleFile {
+  examples: Example[]
+}
